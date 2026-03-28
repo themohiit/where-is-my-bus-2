@@ -1,0 +1,27 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Backend service for trip lifecycle management and live bus location ingestion.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "echo \"No tests configured yet\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "env": "^0.0.2",
+    "express": "^4.22.1",
+    "mongoose": "^8.23.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/themohiit/Where-is-my-BUS.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/themohiit/Where-is-my-BUS/issues"
+  },
+  "homepage": "https://github.com/themohiit/Where-is-my-BUS#readme"
+}
