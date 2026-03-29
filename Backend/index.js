@@ -295,6 +295,34 @@ app.patch('/api/trips/update-logs', async (req, res) => {
   }
 });
 
+app.get('/api/passenger/latest-log/:busId', async (req, res) => {
+  try {
+    const { busId } = req.params;
+
+    // 1. Find logs for this busId
+    // 2. Sort by capturedAt -1 (newest first)
+    // 3. limit(1) to get only the latest one
+    const latestLog = await TripLocationLog.findOne({ busId: busId })
+      .sort({ capturedAt: -1 });
+
+    if (!latestLog) {
+      return res.status(404).json({
+        error: 'No location logs found for this bus.',
+      });
+    }
+
+    return res.status(200).json({
+      busId: latestLog.busId,
+      tripId: latestLog.tripId,
+      coordinates: latestLog.location.coordinates, // [longitude, latitude]
+      capturedAt: latestLog.capturedAt,
+    });
+  } catch (error) {
+    console.error('Fetch Latest Log Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/api/trips/end', async (req, res) => {
   try {
     const { tripId, busId } = req.body;

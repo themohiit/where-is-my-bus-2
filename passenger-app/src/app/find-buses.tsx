@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   ScrollView,
   SafeAreaView,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
+import { Ionicons } from '@expo/vector-icons';
 
 const GREEN = "#5BA943";
 const GREEN_DARK = "#4a8f36";
@@ -68,16 +70,48 @@ const MOCK_STOPS = [
 ];
 
 export default function FindBusesScreen() {
-  const { from, to } = useLocalSearchParams<{ from: string; to: string }>();
+  const { source, destination } = useLocalSearchParams<{ source: string; destination: string }>();
+  const from = source || "";
+  const to = destination || "";
   const [activeTab, setActiveTab] = useState<"stops" | "find">("stops");
+  
+  // ── New State for API Data ──
+  const [buses, setBuses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleBusPress = (bus: { number: string; name: string; route: string }) => {
+  
+useEffect(() => {
+    const fetchBuses = async () => {
+      try {
+        setLoading(true);
+        // Note: 'localhost' works on iOS Simulator. 
+        // For Android Emulator use '10.0.2.2'. 
+        // For real devices use your machine's IP (e.g., 192.168.1.5)
+        const response = await fetch(
+          `http://localhost:3000/api/passenger/search?source=${from}&destination=${to}`
+        );
+        const data = await response.json();
+        
+        // Based on your API response structure: { count: X, trips: [...] }
+        setBuses(data.trips || []);
+      } catch (error) {
+        console.error("Fetch Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };if (from && to) {
+      fetchBuses();
+    }
+  }, [from, to]);
+
+
+  const handleBusPress = (bus: any) => {
     router.push({
       pathname: "/bus-detail",
       params: {
-        busNumber: bus.number,
-        busName: bus.name,
-        route: bus.route,
+        busNumber: bus.busId,
+        source: bus.source.toLowerCase(),
+        destination: bus.destination.toLowerCase(),
       },
     });
   };
@@ -86,10 +120,9 @@ export default function FindBusesScreen() {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={GREEN} />
 
-      {/* ── Header ── */}
+      {/* ── Header (Keep your existing Header code) ── */}
       <View style={styles.header}>
-     
-<TouchableOpacity style={styles.backBtn} onPress={() => router.push("/home")}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -97,95 +130,106 @@ export default function FindBusesScreen() {
           <Text style={styles.headerArrow}>→</Text>
           <Text style={styles.headerTo} numberOfLines={1}>{to || "To"}</Text>
         </View>
-        <TouchableOpacity style={styles.micBtn}>
-          <Image source={require("../../assets/mic.png")} style={styles.micImgHeader} resizeMode="contain" />
-        </TouchableOpacity>
       </View>
 
-
-      {/* ── Bottom Sheet ── */}
       <View style={styles.sheet}>
         <View style={styles.sheetHeader}>
-          <Image
-            source={require("../../assets/bus-icon.png")}
-            style={styles.busIconImg}
-            resizeMode="contain"
-          />
-          <Text style={styles.sheetTitle}>Bus</Text>
+          <Image source={require("../../assets/bus-icon.png")} style={styles.busIconImg} resizeMode="contain" />
+          <Text style={styles.sheetTitle}>Active Buses</Text>
         </View>
 
-        <View style={styles.tabRow}>
-          <TouchableOpacity
-            style={[styles.tabBtn, activeTab === "stops" && styles.tabBtnActive]}
-            onPress={() => setActiveTab("stops")}
-          >
-            <Text style={styles.tabBtnIcon}>🚏</Text>
-            <Text style={[styles.tabBtnText, activeTab === "stops" && styles.tabBtnTextActive]}>Stops</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabBtn, activeTab === "find" && styles.tabBtnActive]}
-            onPress={() => setActiveTab("find")}
-          >
-            <Image source={require("../../assets/search-bar.png")} style={styles.searchImgTab} resizeMode="contain" />
-            <Text style={[styles.tabBtnText, activeTab === "find" && styles.tabBtnTextActive]}>Find a bus</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
-          {MOCK_STOPS.map((stop) => (
-            <View key={stop.id} style={styles.stopCard}>
-              <View style={styles.stopHeader}>
-                <View style={styles.stopIconBox}>
-                  <Image
-                    source={require("../../assets/bus-icon.png")}
-                    style={styles.busIconImg}
-                    resizeMode="contain"
-                  />
-                </View>
-                <View style={styles.stopInfo}>
-                  <Text style={styles.stopName}>{stop.stopName}</Text>
-                  <Text style={styles.stopMeta}>{stop.stopCode} · {stop.busLines}</Text>
-                </View>
-                <View style={styles.walkBadge}>
-                  <Text style={styles.walkIcon}>🚶</Text>
-                  <Text style={styles.walkText}>{stop.walkMin} min</Text>
-                </View>
-              </View>
-
-              <View style={styles.busList}>
-                {stop.buses.map((bus, idx) => (
-                  <TouchableOpacity
-                    key={bus.number}
-                    style={[styles.busRow, idx < stop.buses.length - 1 && styles.busRowBorder]}
-                    onPress={() => handleBusPress(bus)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.busNumBox}>
-                      <Text style={styles.busNumText}>{bus.number}</Text>
-                    </View>
-                    <Text style={styles.busDest} numberOfLines={1}>to {bus.destination}</Text>
-                    <View style={styles.timesRow}>
-                      {bus.times.map((t, ti) => (
-                        <View key={ti} style={styles.timeChip}>
-                          <Text style={styles.timeText}>{t}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          ))}
-          <View style={styles.endNote}>
-            <Text style={styles.endNoteText}>🛣️ Showing stops near your route</Text>
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#fff" />
+            <Text style={{ color: '#fff', marginTop: 10 }}>Finding live buses...</Text>
           </View>
-        </ScrollView>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
+            {buses.length > 0 ? (
+              buses.map((bus) => (
+                <TouchableOpacity 
+                  key={bus._id} 
+                  style={styles.stopCard}
+                  onPress={() => handleBusPress(bus)}
+                >
+                  <View style={styles.stopHeader}>
+                    <View style={styles.stopIconBox}>
+                      <Image source={require("../../assets/bus-icon.png")} style={styles.busIconImg} resizeMode="contain" />
+                    </View>
+                    <View style={styles.stopInfo}>
+                      <Text style={styles.stopName}>{bus.busId}</Text>
+                      <Text style={styles.stopMeta}>Started at: {new Date(bus.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                    </View>
+                    <View style={styles.liveBadge}>
+                       <View style={styles.redDot} />
+                       <Text style={styles.liveText}>LIVE</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.busList}>
+                    <View style={styles.busRow}>
+                      <View style={styles.routeContainer}>
+                        <Text style={styles.routeText}>{bus.source}</Text>
+                        <Ionicons name="arrow-forward" size={12} color={GREEN} />
+                        <Text style={styles.routeText}>{bus.destination}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.noResult}>
+                <Text style={styles.noResultText}>No active buses found on this route.</Text>
+              </View>
+            )}
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  redDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+    marginRight: 4,
+  },
+  liveText: {
+    color: '#B91C1C',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  noResult: {
+    marginTop: 50,
+    alignItems: 'center',
+  },
+  noResultText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  routeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 5
+  },
+  routeText: {
+    color: TEXT_SECONDARY,
+    fontSize: 14,
+    fontWeight: '600'
+  },
   safe: { flex: 1, backgroundColor: GREEN },
   header: {
     backgroundColor: GREEN, flexDirection: "row", alignItems: "center",

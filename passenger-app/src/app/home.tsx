@@ -10,6 +10,7 @@ import {
   StatusBar,
   TextInput,
   Keyboard,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 
@@ -22,31 +23,31 @@ const TEXT_SECONDARY = "#6B7280";
 const TEXT_MUTED = "#9CA3AF";
 
 const AREAS = [
-  "Sonipat Bus Stand",
-  "Panipat Bus Stand",
-  "Karnal Bus Stand",
+  "Sonipat",
+  "Panipat",
+  "Karnal",
   "Delhi ISBT Kashmere Gate",
   "Delhi ISBT Anand Vihar",
-  "Delhi ISBT Sarai Kale Khan",
-  "Rohtak Bus Stand",
-  "Bahadurgarh Bus Stand",
-  "Gurgaon Bus Stand",
-  "Faridabad Bus Stand",
-  "Ambala Bus Stand",
-  "Kurukshetra Bus Stand",
-  "Chandigarh ISBT 17",
-  "Hisar Bus Stand",
-  "Sirsa Bus Stand",
-  "Bhiwani Bus Stand",
-  "Jhajjar Bus Stand",
-  "Rewari Bus Stand",
+  "Delhi",
+  "Rohtak",
+  "Bahadurgarh",
+  "Gurgaon",
+  "Faridabad",
+  "Ambala",
+  "Kurukshetra",
+  "Chandigarh",
+  "Hisar",
+  "Sirsa",
+  "Bhiwani",
+  "Jhajjar",
+  "Rewari",
 ];
 
 const BUS_DATA = [
-  { number: "HR-01", name: "Sonipat – Delhi Express", route: "SNP → DLI", time: "6:00 AM" },
-  { number: "HR-55", name: "Panipat – Kashmere Gate", route: "PNP → KG", time: "7:30 AM" },
+  { number: "HR-01", name: "Sonipat – Karnal", route: "SNP → DLI", time: "6:00 AM" },
+  { number: "HR-55", name: "Panipat – Delhi ", route: "PNP → KG", time: "7:30 AM" },
   { number: "HR-12", name: "Rohtak – Anand Vihar", route: "RHK → AV", time: "8:00 AM" },
-  { number: "HR-77", name: "Karnal – Delhi Direct", route: "KNL → DLI", time: "9:15 AM" },
+  { number: "HR-77", name: "Karnal – Delhi ISBT", route: "KNL → DLI", time: "9:15 AM" },
   { number: "HR-33", name: "Ambala – Chandigarh", route: "ABL → CHD", time: "10:00 AM" },
   { number: "HR-22", name: "Hisar – Delhi Sarai Kale Khan", route: "HSR → SKK", time: "5:45 AM" },
   { number: "HR-44", name: "Bhiwani – Gurgaon", route: "BHW → GGN", time: "11:00 AM" },
@@ -87,12 +88,13 @@ export default function HomeScreen() {
       ? AREAS.filter((a) => a.toLowerCase().includes(toText.toLowerCase()))
       : [];
 
-  const handleFromSelect = (area: string) => {
-    setFromText(area);
-    setFromSelected(area);
-    setActiveField(null);
-    Keyboard.dismiss();
-  };
+const handleFromSelect = (area: string) => {
+  setFromText(area);
+  setFromSelected(area);
+  // Dismiss keyboard and close list
+  setActiveField(null); 
+  Keyboard.dismiss();
+};
 
   const handleToSelect = (area: string) => {
     setToText(area);
@@ -111,11 +113,25 @@ export default function HomeScreen() {
   };
 
   const handleFindBuses = () => {
-    Keyboard.dismiss();
-    const from = fromText.trim() || "Any Station";
-    const to = toText.trim() || "Any Station";
-    router.push({ pathname: "/find-buses", params: { from, to } });
-  };
+  // 1. Validation: Ensure both fields are filled
+  if (!fromText.trim() || !toText.trim()) {
+    Alert.alert("Missing Stations", "Please enter both Source and Destination");
+    return;
+  }
+
+  // 2. Clear Keyboard
+  Keyboard.dismiss();
+
+  // 3. Navigate to results screen with query params
+  router.push({
+    pathname: "/find-buses",
+    params: { 
+      source: fromText.toLowerCase(), 
+      destination: toText.toLowerCase(),
+      timestamp: new Date().getTime() // Force refresh if same search is done twice
+    }
+  });
+};
 
   const handleBusSearch = () => {
     Keyboard.dismiss();
@@ -159,7 +175,7 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
       >
         {/* ── From / To Card ── */}
         <View style={styles.card}>
@@ -181,7 +197,7 @@ export default function HomeScreen() {
                 setActiveField("from");
               }}
               onFocus={() => setActiveField("from")}
-              onBlur={() => setActiveField(null)}
+              
             />
             {fromText.length > 0 ? (
               <TouchableOpacity onPress={() => { setFromText(""); setFromSelected(""); }}>
@@ -235,7 +251,7 @@ export default function HomeScreen() {
                 setActiveField("to");
               }}
               onFocus={() => setActiveField("to")}
-              onBlur={() => setActiveField(null)}
+              
             />
             {toText.length > 0 ? (
               <TouchableOpacity onPress={() => { setToText(""); setToSelected(""); }}>
